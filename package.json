@@ -26,6 +26,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "libphonenumber-js": "^1.11.17",
+    "mongoose": "^8.9.3",
     "zod": "^3.24.1"
   },
   "devDependencies": {
