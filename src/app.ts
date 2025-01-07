@@ -45,6 +45,20 @@ app.patch('/test', async (req: Request,res:Response)=>{
     }
 })
 
+app.delete('/test', async (req:Request,res:Response)=>{
+    try{
+        const { email }=req.body;
+        if(!email) res.status(400).json({message:"email is necessary"});
+        const deletedUser=await User.deleteOne({email});
+        if(!deletedUser.deletedCount) res.status(400).json({message: "no user found"});
+        res.status(201).json({message:`User deleted successfully`,deletedUser:deletedUser});
+    } catch(err){
+        const error=err as Error;
+        console.log(`something went wrong in delete route: ${error}`);
+        res.status(400).json({message: `something went wrong: ${error}`});
+    }
+})
+
 app.use('/',(error:Error,req:Request,res:Response,next:NextFunction)=>{
     console.log(error);
     res.status(500).json({error: `internal server error: ${error.message}`});
