@@ -43,7 +43,15 @@ export const userSchema = z.object({
 
     password: z
     .string()
-    .min(6,"password must be atleast 6 characters long")
+    .min(6,"password must be atleast 6 characters long"),
+
+    createdAt: z
+    .date()
+    .optional(),
+
+    updatedAt: z
+    .date()
+    .optional()
 }).strict()
 
 export type userType = z.infer<typeof userSchema>;

@@ -7,6 +7,8 @@ import connectDB from './config/connectDB'
 import { User } from './models/user'
 import { userSchema,userType } from './schemas/user'
 import { z } from 'zod'
+import hashPassword from './utils/hashPassword'
+import comparePassword from './utils/comparePassword'
 
 const app:Express=express();
 const PORT:number=5000;
@@ -16,7 +18,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(compression());
 
-app.post('/test', async (req:Request,res:Response)=>{
+app.post('/signup', async (req:Request,res:Response)=>{
     try{
         const body=req.body;
         const result=userSchema.safeParse(body);
@@ -30,6 +32,8 @@ app.post('/test', async (req:Request,res:Response)=>{
             return;
         }
         const validatedUser=result.data;
+        const hashedPassword= await hashPassword(validatedUser.password);
+        validatedUser.password=hashedPassword as string;
         const newUser=new User(validatedUser);
         await newUser.save();
         res.status(201).json({message:"Registration successfull",user: newUser});
@@ -38,6 +42,39 @@ app.post('/test', async (req:Request,res:Response)=>{
         const error=err as Error;
         console.log(`Something went wrong ${error}`);
         res.status(500).json({message: 'something went wrong',error: error});
+        return;
+    }
+})
+
+app.post('/signin', async (req:Request,res:Response)=>{
+    try{
+        const signInSchema= userSchema.pick({
+            email:true,
+            password:true
+        })
+        const { email,password }= signInSchema.parse(req.body);
+        const user = await User.findOne({email:email}) as userType | null;
+        if(!user){
+            res.status(400).json({message: "invalid credentials"});
+            return;
+        }
+        const isPasswordCorrect= await comparePassword(password,user.password);
+        if(!isPasswordCorrect){
+            res.status(400).json({message:"invalid credentials"});
+            return;
+        }
+        res.status(200).json({message:"login successfull",user:user});
+        return;
+    } catch(err){
+        if(err instanceof z.ZodError){
+            res.status(400).json({
+                message: "validation failed",
+                error: err.errors
+            })
+            return;
+        }
+        console.log(`something went wrong: ${err}`);
+        res.status(500).json({message: `something went wrong ${err}`});
         return;
     }
 })
