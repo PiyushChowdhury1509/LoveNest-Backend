@@ -5,6 +5,8 @@ import bodyParser from 'body-parser'
 import compression from 'compression'
 import connectDB from './config/connectDB'
 import { User } from './models/user'
+import { userSchema,userType } from './schemas/user'
+import { z } from 'zod'
 
 const app:Express=express();
 const PORT:number=5000;
@@ -17,31 +19,59 @@ app.use(compression());
 app.post('/test', async (req:Request,res:Response)=>{
     try{
         const body=req.body;
-        const newUser=new User(body);
+        const result=userSchema.safeParse(body);
+        console.log(result);
+        if(!result.success){
+            const errorMessages=result.error.errors.map((err)=>({
+                field: err.path.join("."),
+                message: err.message
+            }))
+            res.status(400).json({message: "validation failed",error: errorMessages})
+            return;
+        }
+        const validatedUser=result.data;
+        const newUser=new User(validatedUser);
         await newUser.save();
-        res.status(201).json({message: "user created successfully", user: newUser});
+        res.status(201).json({message:"Registration successfull",user: newUser});
+        return;
     } catch(err){
         const error=err as Error;
         console.log(`Something went wrong ${error}`);
-        res.status(500).json({message: 'something went wrong',error: error.message});
+        res.status(500).json({message: 'something went wrong',error: error});
+        return;
     }
 })
 
-app.patch('/test', async (req: Request,res:Response)=>{
+app.patch('/test', async (req:Request,res:Response)=>{
     try{
-        const { email,...body } = req.body;
-        if(!email) res.status(400).json({message: "email isnt there"});
+        const {email,...body}=req.body;
+        if(!email){
+            res.status(400).json({message: "Email should be present"});
+            return;
+        }
+        const validatedUser=userSchema.partial().parse(body);
         const updatedUser = await User.findOneAndUpdate(
             {email:email},
-            {...body},
-            {new: true,runValidators:true}
+            {...validatedUser},
+            {new: true, runValidators: true}
         )
-        if(!updatedUser) res.status(400).json({message: "no user found"});
-        res.status(200).json({message:"user updated successfully",data:updatedUser});
+        if(!updatedUser){
+            res.status(400).json({message: "no user found with this email id"});
+            return;
+        }
+        res.status(200).json({message: "information updated successfully",user: updatedUser});
+        return;
     } catch(err){
-        const error=err as Error;
-        console.log(`an error occurred: ${error}`);
-        res.status(500).json({message: `an error occurred: ${error}`});
+        if(err instanceof z.ZodError){
+            res.status(400).json({
+                message: "validation failed",
+                error: err.errors
+            })
+            return
+        }
+        console.log(`something went wrong: ${err}`);
+        res.status(500).json({message: `something went wrong: ${err}`});
+        return;
     }
 })
 
