@@ -114,15 +114,23 @@ app.patch('/test', async (req:Request,res:Response)=>{
 
 app.delete('/test', async (req:Request,res:Response)=>{
     try{
-        const { email }=req.body;
-        if(!email) res.status(400).json({message:"email is necessary"});
-        const deletedUser=await User.deleteOne({email});
-        if(!deletedUser.deletedCount) res.status(400).json({message: "no user found"});
-        res.status(201).json({message:`User deleted successfully`,deletedUser:deletedUser});
+        const deleteSchema=userSchema.pick({
+            email:true
+        });
+        const { email }=deleteSchema.parse(req.body); 
+        const deletedUser= await User.findOneAndDelete({email});
+        if(!deletedUser){
+            res.status(404).json({message:"user doesnt exist"});
+            return;
+        }
+        res.status(200).json({message:"user deleted sucessfully",user:deletedUser});
     } catch(err){
-        const error=err as Error;
-        console.log(`something went wrong in delete route: ${error}`);
-        res.status(400).json({message: `something went wrong: ${error}`});
+        if(err instanceof z.ZodError){
+            res.status(400).json({message: "invalid delete request",error:err.errors});
+            return;
+        }
+        res.status(500).json({message: "something went wrong",error:err});
+        return;
     }
 })
 
