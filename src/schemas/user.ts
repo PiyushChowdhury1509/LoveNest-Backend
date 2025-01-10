@@ -1,5 +1,6 @@
 import { isValidPhoneNumber } from 'libphonenumber-js';
 import { z } from 'zod';
+import { Types } from 'mongoose';
 
 export const userSchema = z.object({
     firstName: z
@@ -55,3 +56,4 @@ export const userSchema = z.object({
 }).strict()
 
 export type userType = z.infer<typeof userSchema>;
+export type userTypeWithId = userType & {_id: Types.ObjectId};
