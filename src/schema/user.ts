@@ -56,4 +56,4 @@ export const userSchema = z.object({
 }).strict()
 
 export type userType = z.infer<typeof userSchema>;
-export type userTypeWithId = userType & {_id: Types.ObjectId};
+export type userTypeWithId = userType & {_id: Types.ObjectId, getJwt():string};

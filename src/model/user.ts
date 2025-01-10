@@ -1,7 +1,22 @@
 import mongoose from 'mongoose'
 import { isValidPhoneNumber } from 'libphonenumber-js';
+import jwt, { JwtPayload } from 'jsonwebtoken'
+import { Document } from 'mongoose';
 
-const userSchema = new mongoose.Schema({
+interface User extends Document {
+  firstName: string;
+  lastName: string;
+  email: string;
+  gender: string,
+  age: number,
+  phoneNumber:string,
+  about: string,
+  profilePhotoUrl: string,
+  password: string;
+  getJwt(): string; 
+}
+
+const userSchema = new mongoose.Schema<User>({
     firstName: {
         type: String,
         required: true,
@@ -40,7 +55,8 @@ const userSchema = new mongoose.Schema({
         }
     },
     about: {
-        type: String
+        type: String,
+        maxLength: 1000
     },
     profilePhotoUrl: {
         type: String,
@@ -51,5 +67,13 @@ const userSchema = new mongoose.Schema({
         minLength: 6
     }
 }, { timestamps: true });
+
+userSchema.methods.getJwt = function(){
+    const thisuser = this;
+    const token = jwt.sign({_id: thisuser._id as JwtPayload},process.env.JWT_SECRET!,{
+        expiresIn: '7d'
+    });
+    return token;
+}
 
 export const User = mongoose.model('User',userSchema);
