@@ -48,41 +48,6 @@ profileRouter.patch(
   }
 );
 
-profileRouter.patch("/test", userAuth, async (req: Request, res: Response) => {
-  try {
-    const { email, ...body } = req.body;
-    if (!email) {
-      res.status(400).json({ message: "Email should be present" });
-      return;
-    }
-    const validatedUser = userSchema.partial().parse(body);
-    const updatedUser = await User.findOneAndUpdate(
-      { email: email },
-      { ...validatedUser },
-      { new: true, runValidators: true }
-    );
-    if (!updatedUser) {
-      res.status(400).json({ message: "no user found with this email id" });
-      return;
-    }
-    res
-      .status(200)
-      .json({ message: "information updated successfully", user: updatedUser });
-    return;
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      res.status(400).json({
-        message: "validation failed",
-        error: err.errors,
-      });
-      return;
-    }
-    console.log(`something went wrong: ${err}`);
-    res.status(500).json({ message: `something went wrong: ${err}` });
-    return;
-  }
-});
-
 //get other profiles route
 profileRouter.get(
   "/profiles",
