@@ -5,7 +5,6 @@ import bodyParser from 'body-parser'
 import compression from 'compression'
 import connectDB from './config/connectDB'
 import cookieParser from 'cookie-parser'
-
 const app:Express=express();
 const PORT:number=5000;
 
@@ -15,11 +14,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(compression());
 app.use(cookieParser());
 
-import userRouter from './routes/userRoute'
+import userRouter from './routes/userRouter'
 import profileRouter from './routes/profileRouter'
+import connectionRouter from './routes/connectionRouter'
 
 app.use('/user',userRouter);
 app.use('/profile',profileRouter);
+app.use('/connection',connectionRouter)
 
 app.use('/',(error:Error,req:Request,res:Response,next:NextFunction)=>{
     console.log(error);
