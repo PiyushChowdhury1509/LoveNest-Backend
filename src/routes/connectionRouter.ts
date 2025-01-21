@@ -73,7 +73,7 @@ connectionRouter.post(
         res.status(400).json({
           message: "invalid request data",
           eror: err.errors,
-        });
+        }); 
         return;
       }
       res.status(500).json({

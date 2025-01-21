@@ -28,6 +28,8 @@ const connectionSchema = new mongoose.Schema<connectionSchemaType>(
   { timestamps: true }
 );
 
+connectionSchema.index({fromUserId: 1,toUserId: 1});
+
 connectionSchema.pre('save', function(next){
     const newConnection = this;
     if(newConnection.fromUserId.toString()===newConnection.toUserId.toString()){

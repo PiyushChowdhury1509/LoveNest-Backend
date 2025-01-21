@@ -9,7 +9,9 @@ export const connectionSchema = z.object({
       }),
       z.instanceof(Types.ObjectId),
     ])
-    .transform((val) => (typeof val === "string" ? new Types.ObjectId(val) : val)),
+    .transform((val) =>
+      typeof val === "string" ? new Types.ObjectId(val) : val
+    ),
 
   toUserId: z
     .union([
@@ -18,7 +20,9 @@ export const connectionSchema = z.object({
       }),
       z.instanceof(Types.ObjectId),
     ])
-    .transform((val) => (typeof val === "string" ? new Types.ObjectId(val) : val)),
+    .transform((val) =>
+      typeof val === "string" ? new Types.ObjectId(val) : val
+    ),
 
   status: z.enum(["interested", "ignored", "accepted", "rejected"], {
     errorMap: () => ({ message: "Invalid status type" }),
