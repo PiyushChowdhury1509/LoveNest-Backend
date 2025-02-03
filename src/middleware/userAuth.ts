@@ -20,7 +20,7 @@ const userAuth = async (req:Request,res:Response,next:NextFunction)=>{
             })
             return;
         }
-        const user = await User.findById(_id) as userTypeWithId;
+        const user: userTypeWithId | null = await User.findById(_id);
         if(!user){
             res.status(404).json({
                 message: "no user found with this email id"

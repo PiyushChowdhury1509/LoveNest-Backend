@@ -133,42 +133,75 @@ export const recievedConnections = async (req: Request, res: Response) => {
   }
 };
 
-export const acceptedConnections = async (req: Request,res: Response)=>{
+export const acceptedConnections = async (req: Request, res: Response) => {
+  try {
+    const loggedinUser = (req as any).user as userTypeWithId;
+    const fields = [
+      "firstName",
+      "lastName",
+      "gender",
+      "phoneNumber",
+      "about",
+      "profilePhotoUrl",
+    ];
+    const connections = await Connection.find({
+      $or: [
+        { fromUserId: loggedinUser._id, status: "accepted" },
+        { toUserId: loggedinUser._id, status: "accepted" },
+      ],
+    })
+      .populate("fromUserId", fields)
+      .populate("toUserId", fields);
+    if (connections.length === 0) {
+      res.status(200).json({
+        success: true,
+        message: "no connections found",
+        data: [],
+      });
+      return;
+    }
+    const data = connections
+      .map((connection) => {
+        const fromId = connection.fromUserId?._id?.toString();
+        const toId = connection.toUserId?._id?.toString();
+        return fromId === loggedinUser._id.toString()
+          ? connection.toUserId
+          : connection.fromUserId;
+      })
+      .filter(Boolean); //this removes undefined values
+    res.status(200).json({
+      success: true,
+      message: "accepted connections fetched successfully",
+      data: data,
+    });
+    return;
+  } catch (error) {
+    const err = error as Error;
+    console.log("an error occurred: ", err);
+    res.status(500).json({
+      success: false,
+      message: "internal server error",
+      error: err.message,
+    });
+    return;
+  }
+};
+
+export const viewProfile = async (req: Request, res: Response) => {
     try{
-        const loggedinUser = (req as any).user as userTypeWithId;
-        const fields = ["firstName", "lastName", "gender", "phoneNumber", "about", "profilePhotoUrl"];
-        const connections = await Connection.find({
-            $or: [
-                { fromUserId: loggedinUser._id, status: "accepted"},
-                { toUserId: loggedinUser._id, status: "accepted"}
-            ]
-        }).populate("fromUserId",fields).populate("toUserId",fields)
-        if(connections.length===0){
-            res.status(200).json({
-                success: true,
-                message: "no connections found",
-                data: []
-            })
-            return;
-        }
-        const data = connections.map((connection)=>{
-            const fromId = connection.fromUserId?._id?.toString();
-            const toId = connection.toUserId?._id?.toString();
-            return fromId===loggedinUser._id.toString() ? connection.toUserId : connection.fromUserId;
-        }).filter(Boolean); //this removes undefined values
+        const user = (req as any).user as userTypeWithId;
         res.status(200).json({
             success: true,
-            message: "accepted connections fetched successfully",
-            data: data
-        })
+            message: "user profile fetched successfully",
+            data: user
+        });
         return;
-    } catch(error){
-        const err=error as Error
-        console.log("an error occurred: ",err);
+    } catch(err){
+        console.log("something went wrong: ",err);
         res.status(500).json({
             success: false,
             message: "internal server error",
-            error: err.message
+            error: err
         })
         return;
     }
