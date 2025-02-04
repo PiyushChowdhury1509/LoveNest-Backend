@@ -5,6 +5,7 @@ import { connectionTypeWithId } from "../schema/connection";
 import { userSchema } from "../schema/user";
 import { z } from "zod";
 import { Connection } from "../model/connection";
+import { Types } from "mongoose";
 
 export const editUser = async (req: Request, res: Response) => {
   try {
@@ -52,47 +53,52 @@ export const editUser = async (req: Request, res: Response) => {
   }
 };
 
-export const feedApi = async (req: Request, res: Response) => {
-  try {
-    const user = (req as any).user as userTypeWithId;
-    const { _id } = user;
-    const otherUsers: Array<userTypeWithId> = await User.find();
-    const feed = otherUsers.filter(
-      (user) => user._id.toString() != _id.toString()
-    );
-    if (feed.length === 0) {
+export const feedApi = async (req: Request, res:Response)=>{
+  try{
+    const loggedinUser = (req as any).user as userTypeWithId;
+    type loggedinUserConnectionsType = {
+      fromUserId: Types.ObjectId,
+      toUserId: Types.ObjectId
+    }
+    const loggedinUserConnections:Array<loggedinUserConnectionsType> = await Connection.find({
+      $or:[
+        {fromUserId: loggedinUser._id},
+        {toUserId: loggedinUser._id}
+      ]
+    }).select(["fromUserId", "toUserId"]).lean();
+
+    const connectedUsers = new Set<string>([loggedinUser._id.toString()]);
+    loggedinUserConnections.forEach((users)=>{
+      connectedUsers.add(users.fromUserId.toString());
+      connectedUsers.add(users.toUserId.toString());
+    })
+
+    const users:Array<userTypeWithId> = await User.find({
+      _id: { $nin: Array.from(connectedUsers)}
+    }).lean<userTypeWithId[]>();
+
+    if(users.length===0){
       res.status(200).json({
         success: true,
-        message: "no other users found",
-      });
+        message: "no user found",
+        data: []
+      })
       return;
     }
     res.status(200).json({
       success: true,
-      message: "feed api fetched successfully",
-      users: feed,
-    });
+      message: "users fetched successfully",
+      data: users
+    })
     return;
-  } catch (err) {
-    if (err instanceof z.ZodError) {
-      res.status(400).json({
-        success: false,
-        message: "invalid request data",
-        error: err.errors.map((e) => ({
-          field: e.path.join("."),
-          message: e.message,
-        })),
-      });
-      return;
-    }
+  } catch(err){
     res.status(500).json({
       success: false,
-      message: "internal server error",
-      error: err,
-    });
+      message: `internal server error: ${(err as Error).message}`
+    })
     return;
   }
-};
+}
 
 export const recievedConnections = async (req: Request, res: Response) => {
   try {
