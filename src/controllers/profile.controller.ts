@@ -55,6 +55,17 @@ export const editUser = async (req: Request, res: Response) => {
 
 export const feedApi = async (req: Request, res:Response)=>{
   try{
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    if(!page || !limit){
+      res.status(400).json({
+        success: false,
+        message: "invalid request, request must have both page and limit"
+      })
+      return;
+    }
+
+    const skip:number = (Number(page)-1)*Number(limit);
     const loggedinUser = (req as any).user as userTypeWithId;
     type loggedinUserConnectionsType = {
       fromUserId: Types.ObjectId,
@@ -75,7 +86,7 @@ export const feedApi = async (req: Request, res:Response)=>{
 
     const users:Array<userTypeWithId> = await User.find({
       _id: { $nin: Array.from(connectedUsers)}
-    }).lean<userTypeWithId[]>();
+    }).skip(skip).limit(Number(limit)).lean<userTypeWithId[]>();
 
     if(users.length===0){
       res.status(200).json({
@@ -100,7 +111,7 @@ export const feedApi = async (req: Request, res:Response)=>{
   }
 }
 
-export const recievedConnections = async (req: Request, res: Response) => {
+export const recievedConnections = async (req: Request,res: Response) => {
   try {
     const loggedinUser = (req as any).user as userTypeWithId;
     const connections = await Connection.find({
