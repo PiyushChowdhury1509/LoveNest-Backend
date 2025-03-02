@@ -84,32 +84,85 @@ export const reviewConnection = async (req: Request, res: Response) => {
       });
       return;
     }
-    const connection: connectionTypeWithId & mongoose.Document | null = await Connection.findOne({
-      _id: connectionId,
-      toUserId: user._id,
-      status: "interested",
-    });
-    if(!connection){
-        res.status(404).json({
-            success: false,
-            message: "no such connection found",
-            connection: connection
-        })
-        return;
+    const connection: (connectionTypeWithId & mongoose.Document) | null =
+      await Connection.findOne({
+        _id: connectionId,
+        toUserId: user._id,
+        status: "interested",
+      });
+    if (!connection) {
+      res.status(404).json({
+        success: false,
+        message: "no such connection found",
+        connection: connection,
+      });
+      return;
     }
-    connection.status=status as 'accepted' | 'rejected';
+    connection.status = status as "accepted" | "rejected";
     const savedConnection = await connection.save();
     res.status(200).json({
-        success: true,
-        message: `connection ${status} successfully`,
-        connection: savedConnection
-    })
+      success: true,
+      message: `connection ${status} successfully`,
+      connection: savedConnection,
+    });
     return;
-  } catch (err){
+  } catch (err) {
     res.status(500).json({
+      success: false,
+      message: "internal server error",
+    });
+    return;
+  }
+};
+
+export const cancelConnection = async (req: Request, res: Response) => {
+  try {
+    const loggedinUser = (req as any).user as userTypeWithId;
+    const { connectionId } = req.params;
+    if (!isValidObjectId(connectionId)) {
+      res.status(400).json({
         success: false,
-        message: "internal server error"
-    })
+        message: "invalid connectionId",
+      });
+      return;
+    }
+    const connection: (connectionTypeWithId & mongoose.Document) | null = await Connection.findOne({
+      $or: [
+        {
+          fromUserId: loggedinUser._id,
+          toUserId: connectionId,
+          status: "accepted",
+        },
+        {
+          fromUserId: connectionId,
+          toUserId: loggedinUser._id,
+          status: "accepted",
+        },
+      ],
+    });
+
+    if(!connection){
+      res.status(404).json({
+        success: false,
+        message: "no active connections found to cancel"
+      });
+      return;
+    }
+    connection.status = "rejected";
+    const savedConnection = await connection.save();
+    res.status(200).json({
+      success: true,
+      message: "connection cancelled successfully",
+      data: savedConnection
+    });
+    return;
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "internal server error",
+      error: err
+    });
     return;
   }
 };
